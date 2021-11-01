@@ -1,10 +1,13 @@
-"""Security and authorization management"""
+"""The login endpoint."""
+
+from datetime import timedelta
 
 from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api import deps
 from core import security
+from core.config import settings
 from schemas import token_schema
 
 
@@ -12,21 +15,23 @@ router = APIRouter()
 
 
 @router.post("/login/access-token", response_model=token_schema.Token)
-def login_for_access_token(
-    db = Depends(deps.get_db),
+async def login_for_access_token(
+    db: dict = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     """Give a token for the authorization.
     \f
     Parameter
     ---------
+    db : dict        
+        A database in dict format.
     form_data : OAuth2PasswordRequestForm
         The authorization request form.
     
     Raise
     -----
-    HTTPException : 401
-        Incorrect username or password if the username or the password input is not correct.
+    HTTPException : 400
+        If the username or the password input is not correct.
     
     Return
     ------
@@ -41,7 +46,8 @@ def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        data={"sub": user.username},
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}

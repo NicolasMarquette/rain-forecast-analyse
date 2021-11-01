@@ -1,13 +1,13 @@
-"""Security and authorization management"""
+"""Authorization management"""
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
 
-from schemas import user_schema, token_schema
 from core.config import settings
 from db import db_users
+from schemas import user_schema, token_schema
 
 
 # Utility function to authenticate.
@@ -17,6 +17,7 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 
 def get_db():
+    """Return the users database."""
     users_db = db_users.users
     return users_db
 
@@ -40,27 +41,25 @@ def get_user(db, username: str):
         return user_schema.UserInDB(**user_dict)
 
 
-def get_current_user(
-    db = Depends(get_db), token: str = Depends(oauth2_scheme)
-):
-    """Get the current user after verifying the token.
+def get_current_user(db = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    """Get the current user after verifying the token authorization.
     
     Parameters
     ----------
-    security_scopes : SecurityScopes
-        To get the scopes object.
+    db : dict
+        A database in dict format.
     token : str
         The token that was created for the user.
     
     Raises
     ------
-    HTTPException : 401 
-        Could not validate credentials if token decoding fails,
-        the data is not valid with the model or there is no username.
     HTTPException : 401
         Not enough permissions if attempting to access an endpoint 
         without the correct authorization.
-    
+    HTTPException : 403 
+        Could not validate credentials if token decoding fails,
+        the data is not valid with the model or there is no username.
+        
     Return
     ------
     user : UserInDB : The user's data for the specified username.
@@ -71,26 +70,21 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        # Decode the token received.
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
-        # Get the username in the token.
         username: str = payload.get("sub")
         token_data = token_schema.TokenData(username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
-    # Get the user's data from the username in the token.
     user = get_user(db, username=token_data.username)
     if not user:
         raise credentials_exception
     return user
 
 
-def get_current_admin_user(
-    current_user: user_schema.User = Depends(get_current_user)
-):
-    """Verify if the access according to the user's role.
+def get_current_admin_user(current_user: user_schema.User = Depends(get_current_user)):
+    """Get the current user with admin rights.
     
     Parameter
     ---------
@@ -100,7 +94,7 @@ def get_current_admin_user(
     Raise
     -----
     HTTPException : 401
-        Not authorized if the user does not have the admin role.
+        Not authorized if the user does not have the admin rights.
     
     Return
     ------
@@ -108,5 +102,8 @@ def get_current_admin_user(
         The user's data for the specified username.
     """
     if not current_user.admin:
-        raise HTTPException(status_code=401, detail="The user doesn't have enough privileges")
+        raise HTTPException(
+            status_code=401, 
+            detail="The user doesn't have enough privileges",
+        )
     return current_user

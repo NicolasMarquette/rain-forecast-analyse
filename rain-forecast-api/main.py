@@ -8,6 +8,17 @@ from core.config import settings
 
 description = """
 ## API to get the performance of the machine learning model.
+
+Select the machine learning model for your weather data :  
+- Decision Tree Classifier (`dtc`)  
+- Gradient Boosting Classifier (`gbc`)  
+- Gaussian Naive Bayes (`gnb`)  
+- Logistic Regression (`lr`)  
+- K-Nearest Neighbors (`knn`)  
+
+### Made by
+* Nicolas Marquette & Marcello Caciolo
+* 2021
 """
 
 app = FastAPI(
@@ -36,5 +47,5 @@ app = FastAPI(
 )
 
 
-# Get all the routers
+# Call the routers
 app.include_router(api_router, prefix=settings.API_V1_STR)

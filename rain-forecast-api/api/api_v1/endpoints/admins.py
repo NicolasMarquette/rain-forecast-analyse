@@ -1,10 +1,10 @@
-"""The admin API route"""
+"""The admin endpoints."""
 
 from fastapi import APIRouter
 from fastapi.params import Depends
 
-from schemas import user_schema
 from api import deps
+from schemas import user_schema
 
 
 router = APIRouter()

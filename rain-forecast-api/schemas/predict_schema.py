@@ -1,3 +1,5 @@
+"""Schema for the prediction."""
+
 from pydantic import BaseModel
 
 
